@@ -1,0 +1,19 @@
+<table>
+  <tr>
+    <th>Id</th>
+    <th>Titulo</th>
+    <th>Descricao</th>
+    <th>Data da notícia</th>
+  </tr>
+  <% @noticias.each do |n| %>
+    <tr>
+      <td><%= n.id %></td>
+      <td><%= n.titulo %></td>
+      <td><%= n.descricao %></td>
+      <td><%= n.data %></td>
+    </tr>
+<% end %>
+
+<div class="streaming">
+
+</div>
