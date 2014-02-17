@@ -1,9 +1,10 @@
 class NoticiasController < ApplicationController
   include ActionController::Live
-  before_action :pega_fila
+  before_action :fila
 
   def index
     @noticias = Noticia.all
+    @ultima_noticia = Noticia.last
   end
 
   def new
@@ -13,28 +14,32 @@ class NoticiasController < ApplicationController
   def create
     @noticia = Noticia.new noticias_params
     if @noticia.save
-      @fila.enfila @noticia
+      @central.notifica(@noticia)
       redirect_to root_path
     else
       render 'new'
     end
   end
 
+  def update(ultima_noticia)
+    @ultima_noticia = ultima_noticia
+  end
+
   def stream
     response.headers['Content-Type'] = 'text/event-stream'
-
-    if @fila.fila
-      begin
-        @fila.fila.each do |noticia|
-          response.stream.write "id: #{noticia.id}\n"
+    @central.add_observer(self)
+    begin
+      loop do
+        if @ultima_noticia
+          response.stream.write "id: #{Time.now}\n"
           response.stream.write "event: update\n"
-          response.stream.write "data: {'titulo': #{noticia.titulo}, 'descricao': #{noticia.descricao}}\n\n"
+          response.stream.write "data: {'id': #{@ultima_noticia.id}, 'titulo': #{@ultima_noticia.titulo}, 'descricao': #{@ultima_noticia.descricao}}\n\n"
+          @ultima_noticia = nil
         end
-        #@fila.limpa
-      rescue IOError
-      ensure
-        response.stream.close
       end
+    rescue IOError
+    ensure
+      response.stream.close
     end
   end
 
@@ -42,7 +47,7 @@ class NoticiasController < ApplicationController
     params.require(:noticia).permit :id, :titulo, :descricao
   end
 
-  def pega_fila
-    @fila = Fila.instance
+  def fila
+    @central = Fila.instance
   end
 end
